@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Reverse Kinematics Skatch-A-Etch</title> <script src="https://cdn.tailwindcss.com"></script>
+    <title>Responsive Reverse Kinematics Etch-A-Sketch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles - Reverted to previous state */
+        /* Custom styles */
         body {
             font-family: 'Inter', sans-serif;
             overscroll-behavior: none;
@@ -18,35 +19,47 @@
             align-items: center;
             min-height: 100vh;
             background-color: #e5e7eb; /* gray-200 */
-            overflow: hidden; /* Prevent scrollbars if frame moves slightly */
+            overflow: hidden;
+            padding: 1rem; /* Added padding to body for small screens */
         }
         #etch-a-sketch-frame {
             background-color: #dc2626; /* red-600 */
             border-radius: 20px;
-            padding: 25px;
+            /* Responsive Padding */
+            padding: 1rem; /* p-4 */
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), inset 0 0 10px rgba(0,0,0,0.3);
             cursor: grab;
             position: relative;
-            width: fit-content;
+            /* Responsive Width: Full width on small, max width on larger */
+            width: 100%;
+            max-width: 32rem; /* max-w-lg */
             border: 2px solid #b91c1c;
-            /* Add transition for smooth reset */
             transition: transform 0.1s ease-out;
         }
+        @media (min-width: 640px) { /* sm breakpoint */
+             #etch-a-sketch-frame {
+                 padding: 1.5rem; /* sm:p-6 */
+             }
+        }
+
         #etch-a-sketch-frame.grabbing {
             cursor: grabbing;
-            /* Remove transition during active grab for immediate response */
             transition: none;
         }
         #drawingCanvas {
             touch-action: none;
-            cursor: crosshair; /* Re-added crosshair cursor */
+            cursor: crosshair;
             border-radius: 8px;
-            background-color: #d1d5db; /* gray-300 - Screen color */
-            border: 4px solid #9ca3af; /* gray-400 - Inner screen border */
+            background-color: #d1d5db; /* gray-300 */
+            border: 4px solid #9ca3af; /* gray-400 */
             box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
             display: block;
             position: relative;
             overflow: hidden;
+             /* Make canvas display width responsive, maintain aspect ratio */
+            width: 100%;
+            aspect-ratio: 500 / 350; /* Maintain 10:7 ratio based on buffer size */
+            height: auto; /* Height determined by width and aspect ratio */
         }
         #fadeOverlay {
             position: absolute;
@@ -63,12 +76,25 @@
         .knobs-container {
             display: flex;
             justify-content: space-between;
-            padding: 15px 20px 0 20px;
-            margin-top: 5px;
+             /* Responsive Padding */
+            padding-left: 0.75rem; /* px-3 */
+            padding-right: 0.75rem; /* px-3 */
+            padding-top: 0.75rem; /* py-3 */
+            margin-top: 0.5rem; /* mt-2 */
         }
+         @media (min-width: 640px) { /* sm breakpoint */
+             .knobs-container {
+                 padding-left: 1.25rem; /* sm:px-5 */
+                 padding-right: 1.25rem; /* sm:px-5 */
+                 padding-top: 1rem; /* sm:pt-4 */
+                 margin-top: 0.75rem; /* sm:mt-3 */
+             }
+         }
+
         .knob {
-            width: 65px;
-            height: 65px;
+             /* Responsive Knob Size */
+            width: 3.5rem; /* w-14 (56px) */
+            height: 3.5rem; /* h-14 (56px) */
             border: 3px solid #9ca3af;
             background-color: #ffffff;
             border-radius: 50%;
@@ -77,18 +103,25 @@
             justify-content: center;
             align-items: center;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 0 5px rgba(0,0,0,0.1);
-            cursor: default; /* Knobs not interactive */
+            cursor: default;
         }
-        /* Removed .knob.active style */
+         @media (min-width: 640px) { /* sm breakpoint */
+             .knob {
+                 width: 4rem; /* sm:w-16 (64px) */
+                 height: 4rem; /* sm:h-16 (64px) */
+             }
+         }
+
         .knob-marker {
-            width: 8px;
+             /* Adjust marker slightly for smaller base knob size */
+            width: 6px;
             height: 40%;
             background-color: #ef4444; /* red-500 */
             position: absolute;
             top: 10%;
-            left: calc(50% - 4px);
+            left: calc(50% - 3px); /* Centered */
             transform-origin: bottom center;
-            border-radius: 4px;
+            border-radius: 3px;
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -126,10 +159,9 @@
         const markerV = document.getElementById('markerV');
 
         // --- State Variables ---
-        let isDrawing = false; // Re-added for canvas drawing
-        let lastX = 0; // Re-added for canvas drawing
-        let lastY = 0; // Re-added for canvas drawing
-        // let currentEtchX, currentEtchY; // Removed, not needed for direct drawing
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
         let totalAngleH = 0;
         let totalAngleV = 0;
         let isShaking = false;
@@ -140,12 +172,11 @@
         let shakeDirectionChanges = 0;
         let currentFade = 0;
         let lastDeltaXSign = 0;
-        // Removed knob dragging state variables (draggingKnob, dragStartX/Y, initialKnobAngle)
 
         // --- Configuration ---
-        const pixelsPerDegree = 1; // Re-added for reverse kinematics
+        const pixelsPerDegree = 1;
         ctx.strokeStyle = '#1f2937';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.5; // Line width remains constant relative to buffer
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
         const FADE_INCREMENT = 5;
@@ -155,90 +186,60 @@
         const SHAKE_AMPLITUDE = 3;
         const ROTATION_FACTOR = 0.2;
         const MAX_ROTATION_ANGLE = 2;
-        // Removed KNOB_DRAG_SENSITIVITY constants
-
-        // --- Initialization ---
-        // function initializeDrawing() { // Removed, not needed for direct drawing
-        //     currentEtchX = canvas.width / 2;
-        //     currentEtchY = canvas.height / 2;
-        //     ctx.beginPath();
-        //     ctx.moveTo(currentEtchX, currentEtchY);
-        // }
 
         // --- Event Listeners ---
-        // ** Re-added Canvas Drawing Listeners **
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('touchstart', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing); // Stop if cursor leaves canvas
+        canvas.addEventListener('mouseout', stopDrawing);
         canvas.addEventListener('touchend', stopDrawing);
         canvas.addEventListener('touchcancel', stopDrawing);
-
-        // ** Removed Knob Drag Listeners **
-
-        // Frame Shaking Listeners
         frame.addEventListener('mousedown', startShaking);
         frame.addEventListener('touchstart', startShaking);
-        // Note: Move and End listeners for shake are added to window dynamically
 
-        // --- Drawing Functions (Reverted) ---
+        // --- Drawing Functions ---
         function startDrawing(e) {
-            if (isShaking) return; // Don't draw while shaking
-            e.preventDefault(); // Prevent default actions like text selection or scrolling
-
+            if (isShaking) return;
+            e.preventDefault();
             isDrawing = true;
-            const pos = getEventPosition(e, canvas); // Use canvas relative coords
+            // getEventPosition correctly handles scaling via getBoundingClientRect
+            const pos = getEventPosition(e, canvas);
             if (!pos) return;
             [lastX, lastY] = [pos.x, pos.y];
-            ctx.beginPath(); // Start a new path segment
+            ctx.beginPath();
             ctx.moveTo(lastX, lastY);
         }
 
         function draw(e) {
             if (!isDrawing || isShaking) return;
             e.preventDefault();
-
-            const pos = getEventPosition(e, canvas); // Use canvas relative coords
+            const pos = getEventPosition(e, canvas);
              if (!pos) return;
             const currentX = pos.x;
             const currentY = pos.y;
 
-            // 1. Draw on the canvas
+            // Drawing coordinates are relative to the 500x350 buffer
             ctx.lineTo(currentX, currentY);
-            ctx.stroke(); // Draw the line segment
+            ctx.stroke();
 
-            // 2. Calculate movement delta
             const deltaX = currentX - lastX;
             const deltaY = currentY - lastY;
-
-            // 3. Calculate required knob rotation for this segment (Reverse Kinematics)
             const deltaAngleH = deltaX / pixelsPerDegree;
             const deltaAngleV = deltaY / pixelsPerDegree;
-
-            // 4. Update total knob angles
             totalAngleH += deltaAngleH;
             totalAngleV += deltaAngleV;
-
-            // 5. Update knob visualization
             updateKnobs();
-
-            // Update last position
             [lastX, lastY] = [currentX, currentY];
         }
 
         function stopDrawing() {
-            // Optional: Close path if needed
-            // if (isDrawing) ctx.closePath();
             isDrawing = false;
         }
 
-        // --- Knob Drag Functions (Removed) ---
-
-        // --- Shaking / Erasing Functions (Remain the same) ---
+        // --- Shaking / Erasing Functions ---
         function startShaking(e) {
-            // Prevent starting shake if drawing OR if click is on a knob (though knobs aren't interactive now)
             if (isDrawing || e.target.closest('.knob')) return;
             e.preventDefault();
             isShaking = true;
@@ -320,54 +321,52 @@
             currentFade = 0;
             updateKnobs();
             updateFade();
-            isDrawing = false; // Ensure drawing stops
-            // Removed initializeDrawing() call - not needed here
-            // Start a new path in case drawing continues after clear without mouseup/down
+            isDrawing = false;
             ctx.beginPath();
         }
 
-        // Helper to get consistent coordinates - adjusted for canvas interaction
+        // Helper to get coordinates relative to the canvas buffer (500x350)
+        // even when the canvas element is scaled by CSS
         function getEventPosition(e, element) {
-            let x, y;
+            let clientX, clientY;
             const touch = e.touches?.[0] || e.changedTouches?.[0];
 
             if (touch) { // Touch event
-                 // Use clientX/Y for window-relative calculations (shaking)
-                 if (element === window) {
-                     x = touch.clientX;
-                     y = touch.clientY;
-                 } else { // Use coordinates relative to the target element (canvas)
-                     const rect = element.getBoundingClientRect();
-                     x = touch.clientX - rect.left;
-                     y = touch.clientY - rect.top;
-                 }
+                clientX = touch.clientX;
+                clientY = touch.clientY;
             } else if (e.clientX !== undefined && e.clientY !== undefined) { // Mouse event
-                 // Use clientX/Y for window-relative calculations (shaking)
-                 if (element === window) {
-                     x = e.clientX;
-                     y = e.clientY;
-                 } else { // Use offsetX/Y for coordinates relative to the target element (canvas)
-                     // Note: offsetX/Y is simpler than clientX/Y - rect.left/top for mouse on target
-                     x = e.offsetX;
-                     y = e.offsetY;
-                 }
+                clientX = e.clientX;
+                clientY = e.clientY;
             } else {
                 return null; // Could not get position
             }
 
-            // Clamp coordinates within canvas bounds only if the target is the canvas
-             if (element === canvas) {
-                 x = Math.max(0, Math.min(element.width, x));
-                 y = Math.max(0, Math.min(element.height, y));
-             }
-            return { x, y };
+            // If target is window, return client coordinates directly (for shaking)
+            if (element === window) {
+                return { x: clientX, y: clientY };
+            }
+
+            // If target is canvas, calculate position relative to the element
+            // and scale it to match the fixed buffer size (500x350)
+            const rect = element.getBoundingClientRect();
+            const scaleX = element.width / rect.width;    // relationship bitmap vs. element for X
+            const scaleY = element.height / rect.height;  // relationship bitmap vs. element for Y
+
+            const canvasX = (clientX - rect.left) * scaleX; // scale mouse coordinates after they have
+            const canvasY = (clientY - rect.top) * scaleY;  // been adjusted to be relative to element
+
+             // Clamp coordinates within canvas buffer bounds
+            const finalX = Math.max(0, Math.min(element.width, canvasX));
+            const finalY = Math.max(0, Math.min(element.height, canvasY));
+
+            return { x: finalX, y: finalY };
         }
 
+
         // Initial setup
-        // initializeDrawing(); // Removed - drawing starts on first mousedown/touchstart
         updateKnobs();
         updateFade();
-        ctx.beginPath(); // Initialize path state
+        ctx.beginPath();
 
     </script>
 
