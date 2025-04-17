@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Reverse Kinematics Sketch-A-Etch</title>
+    <title>Reverse Kinematic Sketch-A-Etch</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles */
@@ -15,36 +15,51 @@
             -moz-user-select: none;
             -ms-user-select: none;
             display: flex;
+            flex-direction: column; /* Stack frame and toggle */
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #e5e7eb; /* gray-200 */
+            background-color: #e5e7eb; /* gray-200 - Default */
             overflow: hidden;
-            padding: 1rem; /* Added padding to body for small screens */
+            padding: 1rem;
+            transition: background-color 0.5s ease; /* Smooth background transition */
+            position: relative; /* Needed for sparkle container */
         }
+        /* --- Disco Mode Body Style --- */
+        body.disco-mode {
+            background-color: #111827; /* gray-900 */
+        }
+
         #etch-a-sketch-frame {
-            background-color: #dc2626; /* red-600 */
+            background-color: #dc2626; /* red-600 - Default */
             border-radius: 20px;
-            /* Responsive Padding */
             padding: 1rem; /* p-4 */
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), inset 0 0 10px rgba(0,0,0,0.3);
             cursor: grab;
             position: relative;
-            /* Responsive Width: Full width on small, max width on larger */
             width: 100%;
             max-width: 32rem; /* max-w-lg */
-            border: 2px solid #b91c1c;
-            transition: transform 0.1s ease-out;
+            border: 2px solid #b91c1c; /* Default darker red border */
+            transition: transform 0.1s ease-out, background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+            margin-bottom: 1.5rem; /* Add space below frame for toggle */
         }
         @media (min-width: 640px) { /* sm breakpoint */
              #etch-a-sketch-frame {
                  padding: 1.5rem; /* sm:p-6 */
              }
         }
+        /* --- Disco Mode Frame Style (UV Blacklight Effect) --- */
+        body.disco-mode #etch-a-sketch-frame {
+            background-color: #1f2937; /* gray-800 */
+            border: 3px solid #a855f7; /* purple-500 */
+            box-shadow: 0 0 15px 5px rgba(168, 85, 247, 0.5), /* Outer glow */
+                        inset 0 0 10px rgba(0,0,0,0.5); /* Inner shadow */
+        }
+
 
         #etch-a-sketch-frame.grabbing {
             cursor: grabbing;
-            transition: none;
+            transition: none; /* Keep immediate response for grab */
         }
         #drawingCanvas {
             touch-action: none;
@@ -56,27 +71,35 @@
             display: block;
             position: relative;
             overflow: hidden;
-             /* Make canvas display width responsive, maintain aspect ratio */
             width: 100%;
-            aspect-ratio: 500 / 350; /* Maintain 10:7 ratio based on buffer size */
-            height: auto; /* Height determined by width and aspect ratio */
+            aspect-ratio: 500 / 350;
+            height: auto;
         }
+         /* --- Disco Mode Canvas Style --- */
+         body.disco-mode #drawingCanvas {
+             border-color: #374151; /* gray-700 */
+             background-color: #4b5563; /* gray-600 */
+         }
+
         #fadeOverlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #d1d5db;
+            background-color: #d1d5db; /* Match default canvas background */
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.1s linear;
+            transition: opacity 0.1s linear, background-color 0.5s ease;
             border-radius: 8px;
         }
+         body.disco-mode #fadeOverlay {
+             background-color: #4b5563; /* Match disco canvas background */
+         }
+
         .knobs-container {
             display: flex;
             justify-content: space-between;
-             /* Responsive Padding */
             padding-left: 0.75rem; /* px-3 */
             padding-right: 0.75rem; /* px-3 */
             padding-top: 0.75rem; /* py-3 */
@@ -92,10 +115,9 @@
          }
 
         .knob {
-             /* Responsive Knob Size */
             width: 3.5rem; /* w-14 (56px) */
             height: 3.5rem; /* h-14 (56px) */
-            border: 3px solid #9ca3af;
+            border: 3px solid #9ca3af; /* Default */
             background-color: #ffffff;
             border-radius: 50%;
             position: relative;
@@ -104,6 +126,7 @@
             align-items: center;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 0 5px rgba(0,0,0,0.1);
             cursor: default;
+            transition: border-color 0.5s ease, background-color 0.5s ease;
         }
          @media (min-width: 640px) { /* sm breakpoint */
              .knob {
@@ -111,24 +134,112 @@
                  height: 4rem; /* sm:h-16 (64px) */
              }
          }
+         /* --- Disco Mode Knob Style --- */
+         body.disco-mode .knob {
+             background-color: #374151; /* gray-700 */
+             border-color: #a855f7; /* purple-500 */
+         }
 
         .knob-marker {
-             /* Adjust marker slightly for smaller base knob size */
             width: 6px;
             height: 40%;
-            background-color: #ef4444; /* red-500 */
+            background-color: #ef4444; /* red-500 - Default */
             position: absolute;
             top: 10%;
-            left: calc(50% - 3px); /* Centered */
+            left: calc(50% - 3px);
             transform-origin: bottom center;
             border-radius: 3px;
+            transition: background-color 0.5s ease;
         }
+         /* --- Disco Mode Marker Style --- */
+         body.disco-mode .knob-marker {
+             background-color: #ec4899; /* pink-500 */
+         }
+
+        /* --- Toggle Switch Styles --- */
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: #374151; /* Default text color */
+            transition: color 0.5s ease;
+        }
+        body.disco-mode .toggle-label {
+            color: #d1d5db; /* Light text in disco mode */
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px; /* Adjusted size */
+            height: 28px; /* Adjusted size */
+            margin-left: 10px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px; /* Adjusted size */
+            width: 20px; /* Adjusted size */
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #a855f7; /* Purple when on */
+        }
+         input:checked + .slider:before {
+            transform: translateX(22px); /* Adjusted translation */
+        }
+
+        /* --- Sparkle Styles --- */
+        #sparkle-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none; /* Don't interfere with interactions */
+            z-index: -1; /* Behind everything */
+        }
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: sparkle-anim 1.5s infinite ease-in-out;
+        }
+        @keyframes sparkle-anim {
+            0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+            50% { opacity: 0.8; transform: scale(1) rotate(180deg); }
+        }
+
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div id="sparkle-container"></div>
 
     <div id="etch-a-sketch-frame">
         <div style="position: relative;">
@@ -149,6 +260,15 @@
         </div>
     </div>
 
+    <label class="toggle-label" for="discoToggle">
+        Disco Mode
+        <div class="toggle-switch">
+            <input type="checkbox" id="discoToggle">
+            <span class="slider"></span>
+        </div>
+    </label>
+
+
     <script>
         // Get elements
         const frame = document.getElementById('etch-a-sketch-frame');
@@ -157,6 +277,9 @@
         const fadeOverlay = document.getElementById('fadeOverlay');
         const markerH = document.getElementById('markerH');
         const markerV = document.getElementById('markerV');
+        const discoToggle = document.getElementById('discoToggle');
+        const body = document.body;
+        const sparkleContainer = document.getElementById('sparkle-container');
 
         // --- State Variables ---
         let isDrawing = false;
@@ -172,11 +295,14 @@
         let shakeDirectionChanges = 0;
         let currentFade = 0;
         let lastDeltaXSign = 0;
+        let isDiscoMode = false; // Disco Mode state
+        let discoHue = 0; // For rainbow color cycling
+        let sparkleInterval = null; // Interval ID for sparkles
 
         // --- Configuration ---
         const pixelsPerDegree = 1;
-        ctx.strokeStyle = '#1f2937';
-        ctx.lineWidth = 2.5; // Line width remains constant relative to buffer
+        const defaultStrokeStyle = '#1f2937'; // Default line color
+        ctx.lineWidth = 2.5;
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
         const FADE_INCREMENT = 5;
@@ -186,6 +312,7 @@
         const SHAKE_AMPLITUDE = 3;
         const ROTATION_FACTOR = 0.2;
         const MAX_ROTATION_ANGLE = 2;
+        const NUM_SPARKLES = 50; // Number of background sparkles
 
         // --- Event Listeners ---
         canvas.addEventListener('mousedown', startDrawing);
@@ -198,18 +325,45 @@
         canvas.addEventListener('touchcancel', stopDrawing);
         frame.addEventListener('mousedown', startShaking);
         frame.addEventListener('touchstart', startShaking);
+        discoToggle.addEventListener('change', toggleDiscoMode); // Listener for the toggle
+
+        // --- Disco Mode Toggle Function ---
+        function toggleDiscoMode() {
+            isDiscoMode = discoToggle.checked;
+            body.classList.toggle('disco-mode', isDiscoMode);
+
+            // Update stroke style immediately for subsequent drawing
+            if (!isDrawing) { // Avoid changing style mid-draw if toggled
+                 ctx.strokeStyle = isDiscoMode ? `hsl(${discoHue}, 100%, 55%)` : defaultStrokeStyle;
+                 // If toggling off, reset path to apply default color immediately if needed
+                 // ctx.beginPath(); // This might clear existing path unintentionally, be careful
+            }
+
+            // Start/Stop Sparkle Effect
+            if (isDiscoMode) {
+                startSparkles();
+            } else {
+                stopSparkles();
+            }
+
+             // Redraw existing content with new style? (Optional, complex)
+             // For simplicity, style only applies to new lines drawn after toggle.
+             // Or, could potentially clear canvas on toggle? User might not like that.
+             // Let's stick to applying style to new drawings.
+        }
 
         // --- Drawing Functions ---
         function startDrawing(e) {
             if (isShaking) return;
             e.preventDefault();
             isDrawing = true;
-            // getEventPosition correctly handles scaling via getBoundingClientRect
             const pos = getEventPosition(e, canvas);
             if (!pos) return;
             [lastX, lastY] = [pos.x, pos.y];
-            ctx.beginPath();
+            ctx.beginPath(); // Start new line segment path
             ctx.moveTo(lastX, lastY);
+            // Set initial color for the segment
+            ctx.strokeStyle = isDiscoMode ? `hsl(${discoHue}, 100%, 55%)` : defaultStrokeStyle;
         }
 
         function draw(e) {
@@ -220,9 +374,28 @@
             const currentX = pos.x;
             const currentY = pos.y;
 
-            // Drawing coordinates are relative to the 500x350 buffer
+            // --- Rainbow Color Logic ---
+            if (isDiscoMode) {
+                 // Increment hue based on distance drawn (or simply increment each frame)
+                 const distance = Math.sqrt(Math.pow(currentX - lastX, 2) + Math.pow(currentY - lastY, 2));
+                 discoHue = (discoHue + distance * 0.5) % 360; // Adjust multiplier for speed
+                 ctx.strokeStyle = `hsl(${discoHue}, 100%, 55%)`;
+                 // Create a subtle glow for the line in disco mode
+                 ctx.shadowBlur = 5;
+                 ctx.shadowColor = `hsl(${discoHue}, 100%, 65%)`;
+            } else {
+                 ctx.strokeStyle = defaultStrokeStyle;
+                 ctx.shadowBlur = 0; // Turn off glow
+                 ctx.shadowColor = 'transparent';
+            }
+            // --------------------------
+
             ctx.lineTo(currentX, currentY);
             ctx.stroke();
+            // Need to begin a new path segment to allow the *next* segment to have a potentially different color
+            ctx.beginPath();
+            ctx.moveTo(currentX, currentY);
+
 
             const deltaX = currentX - lastX;
             const deltaY = currentY - lastY;
@@ -235,10 +408,16 @@
         }
 
         function stopDrawing() {
+             if (isDrawing) {
+                 // Reset shadow effect after drawing stops
+                  ctx.shadowBlur = 0;
+                  ctx.shadowColor = 'transparent';
+             }
             isDrawing = false;
         }
 
         // --- Shaking / Erasing Functions ---
+        // (Shaking logic remains the same as previous version)
         function startShaking(e) {
             if (isDrawing || e.target.closest('.knob')) return;
             e.preventDefault();
@@ -322,50 +501,76 @@
             updateKnobs();
             updateFade();
             isDrawing = false;
-            ctx.beginPath();
+            // Reset stroke style and shadow based on current disco mode
+            ctx.strokeStyle = isDiscoMode ? `hsl(${discoHue}, 100%, 55%)` : defaultStrokeStyle;
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+            ctx.beginPath(); // Essential after clearRect
         }
 
-        // Helper to get coordinates relative to the canvas buffer (500x350)
-        // even when the canvas element is scaled by CSS
         function getEventPosition(e, element) {
             let clientX, clientY;
             const touch = e.touches?.[0] || e.changedTouches?.[0];
-
-            if (touch) { // Touch event
-                clientX = touch.clientX;
-                clientY = touch.clientY;
-            } else if (e.clientX !== undefined && e.clientY !== undefined) { // Mouse event
-                clientX = e.clientX;
-                clientY = e.clientY;
-            } else {
-                return null; // Could not get position
-            }
-
-            // If target is window, return client coordinates directly (for shaking)
-            if (element === window) {
-                return { x: clientX, y: clientY };
-            }
-
-            // If target is canvas, calculate position relative to the element
-            // and scale it to match the fixed buffer size (500x350)
+            if (touch) { clientX = touch.clientX; clientY = touch.clientY; }
+            else if (e.clientX !== undefined && e.clientY !== undefined) { clientX = e.clientX; clientY = e.clientY; }
+            else { return null; }
+            if (element === window) { return { x: clientX, y: clientY }; }
             const rect = element.getBoundingClientRect();
-            const scaleX = element.width / rect.width;    // relationship bitmap vs. element for X
-            const scaleY = element.height / rect.height;  // relationship bitmap vs. element for Y
-
-            const canvasX = (clientX - rect.left) * scaleX; // scale mouse coordinates after they have
-            const canvasY = (clientY - rect.top) * scaleY;  // been adjusted to be relative to element
-
-             // Clamp coordinates within canvas buffer bounds
+            const scaleX = element.width / rect.width;
+            const scaleY = element.height / rect.height;
+            const canvasX = (clientX - rect.left) * scaleX;
+            const canvasY = (clientY - rect.top) * scaleY;
             const finalX = Math.max(0, Math.min(element.width, canvasX));
             const finalY = Math.max(0, Math.min(element.height, canvasY));
-
             return { x: finalX, y: finalY };
+        }
+
+        // --- Sparkle Effect Functions ---
+        function createSparkle() {
+            const sparkle = document.createElement('div');
+            sparkle.classList.add('sparkle');
+            sparkle.style.left = `${Math.random() * 100}%`;
+            sparkle.style.top = `${Math.random() * 100}%`;
+            // Randomize animation delay and duration slightly
+            sparkle.style.animationDelay = `${Math.random() * 1.5}s`;
+            sparkle.style.animationDuration = `${1 + Math.random() * 1}s`;
+            // Randomize color slightly using HSL for vibrancy
+            const hue = Math.random() * 360;
+            sparkle.style.backgroundColor = `hsl(${hue}, 100%, 70%)`; // Brighter sparkles
+            sparkle.style.boxShadow = `0 0 5px hsl(${hue}, 100%, 70%)`; // Add glow
+
+            sparkleContainer.appendChild(sparkle);
+
+             // Remove sparkle after animation ends to prevent buildup
+             sparkle.addEventListener('animationiteration', () => {
+                 // Reset position and delay for reuse effect (optional)
+                 // Or simply remove it:
+                 // sparkle.remove();
+                 // Let's reset for continuous effect without creating/deleting constantly
+                 sparkle.style.left = `${Math.random() * 100}%`;
+                 sparkle.style.top = `${Math.random() * 100}%`;
+                 sparkle.style.animationDelay = `${Math.random() * 0.5}s`; // Shorter delay after first run
+             });
+        }
+
+        function startSparkles() {
+            stopSparkles(); // Clear existing sparkles if any
+            sparkleContainer.innerHTML = ''; // Clear container
+            for (let i = 0; i < NUM_SPARKLES; i++) {
+                createSparkle();
+            }
+            // No interval needed if using CSS animation iteration
+        }
+
+        function stopSparkles() {
+             sparkleContainer.innerHTML = ''; // Remove all sparkles
         }
 
 
         // Initial setup
         updateKnobs();
         updateFade();
+        ctx.strokeStyle = defaultStrokeStyle; // Set initial stroke style
         ctx.beginPath();
 
     </script>
